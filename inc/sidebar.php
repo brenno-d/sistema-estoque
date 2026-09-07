@@ -19,13 +19,13 @@ function sidebar($paginaAtiva = ''){
             <hr>
             <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item">
-                    <a href="#" class="nav-link <?= $paginaAtiva === 'produtos' ? 'active' : 'link-dark' ?>" aria-current="page">
+                    <a href="index.php" class="nav-link <?= $paginaAtiva === 'produtos' ? 'active' : 'link-dark' ?>" aria-current="page">
                         <img src="./assets/images/Box-<?= $paginaAtiva === 'produtos' ? 'white' : 'black' ?>.png" alt="Vendas" width="32" height="32" class="me-2">
                         Produtos
                     </a>
                 </li>
                 <li>
-                    <a href="#" class="nav-link <?= $paginaAtiva === 'vendas' ? 'active' : 'link-dark' ?>">
+                    <a href="venda.php" class="nav-link <?= $paginaAtiva === 'vendas' ? 'active' : 'link-dark' ?>">
                         <img src="./assets/images/cashier-<?= $paginaAtiva === 'vendas' ? 'white' : 'black' ?>.png" alt="Vendas" width="32" height="32" class="me-2">
                         Vendas
                     </a>
