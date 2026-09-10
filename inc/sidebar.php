@@ -31,7 +31,7 @@ function sidebar($paginaAtiva = ''){
                     </a>
                 </li>
                 <li>
-                    <a href="#" class="nav-link <?= $paginaAtiva === 'compras' ? 'active' : 'link-dark' ?>">
+                    <a href="compras.php" class="nav-link <?= $paginaAtiva === 'compras' ? 'active' : 'link-dark' ?>">
                         <img src="./assets/images/Truck-<?= $paginaAtiva === 'compras' ? 'white' : 'black' ?>.png" alt="Vendas" width="32" height="32" class="me-2">
                         Compras
                     </a>

@@ -135,7 +135,6 @@ if (isset($_POST['idProdutoExcluir'])) {
                                 </td>
                                 <td class="text-end">
                                     <div class="d-flex justify-content-end gap-2">
-
                                         <button
                                             class="btn btn-sm btn-warning"
                                             onclick='openModalEditar(

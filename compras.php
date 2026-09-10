@@ -1,13 +1,12 @@
 <?php
 include_once __DIR__ . '/inc/DBConn.php';
-// Cadastrar venda
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cadastrarVenda'])) {
-    $idFuncionario = (int) $_POST['id_funcionario'];
-    $dataSql = date('Y-m-d H:i:s', strtotime($_POST['dt_venda']));
+// Cadastrar compra
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cadastrarCompra'])) {
+    $dataSql = date('Y-m-d H:i:s', strtotime($_POST['dt_compra']));
     $idsProdutos = $_POST['produtos'];
     $quantidades = $_POST['quantidades'];
     $total = 0;
-    $itensVenda = [];
+    $itensCompra = [];
     $stmtProduto = $conn->prepare('SELECT nm_produto, qt_estoque, vl_preco FROM tb_produtos WHERE cd_produto = ?');
 
     foreach ($idsProdutos as $indice => $idProduto) {
@@ -17,48 +16,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cadastrarVenda'])) {
         $stmtProduto->execute();
         $produto = $stmtProduto->get_result()->fetch_assoc();
         $total += $produto['vl_preco'] * $quantidade;
-        $itensVenda[] = [$idProduto, $quantidade];
+        $itensCompra[] = [$idProduto, $quantidade];
     }
-    $stmtVenda = $conn->prepare('INSERT INTO tb_vendas (dt_venda, vl_total, id_funcionario) VALUES (?, ?, ?)');
-    $stmtVenda->bind_param('sdi', $dataSql, $total, $idFuncionario);
-    $stmtVenda->execute();
-    $idVenda = $conn->insert_id;
+    $stmtCompra = $conn->prepare('INSERT INTO tb_compras (dt_compra, vl_total_compra) VALUES (?, ?)');
+    $stmtCompra->bind_param('sd', $dataSql, $total);
+    $stmtCompra->execute();
+    $idCompra = $conn->insert_id;
 
-    $stmtProdutoVenda = $conn->prepare('INSERT INTO tb_produtos_vendas (id_produto, id_venda, qt_produto) VALUES (?, ?, ?)');
-    $stmtEstoque = $conn->prepare('UPDATE tb_produtos SET qt_estoque = qt_estoque - ? WHERE cd_produto = ?');
-    foreach ($itensVenda as [$idProduto, $quantidade]) {
-        $stmtProdutoVenda->bind_param('iii', $idProduto, $idVenda, $quantidade);
-        $stmtProdutoVenda->execute();
+    $stmtProdutoCompra = $conn->prepare('INSERT INTO tb_produtos_compras (id_produto, id_compra, qt_produto) VALUES (?, ?, ?)');
+    $stmtEstoque = $conn->prepare('UPDATE tb_produtos SET qt_estoque = qt_estoque + ? WHERE cd_produto = ?');
+    foreach ($itensCompra as [$idProduto, $quantidade]) {
+        $stmtProdutoCompra->bind_param('iii', $idProduto, $idCompra, $quantidade);
+        $stmtProdutoCompra->execute();
         $stmtEstoque->bind_param('ii', $quantidade, $idProduto);
         $stmtEstoque->execute();
     }
 
-    header('Location: venda.php');
+    header('Location: compras.php');
     exit;
 }
 
-// excluir venda
-if (isset($_POST['excluirVenda'])) {
-    $idVenda = (int) $_POST['id_venda'];
-    $stmtProdutoVenda = $conn->prepare('DELETE FROM tb_produtos_vendas WHERE id_venda = ?');
-    $stmtProdutoVenda->bind_param('i', $idVenda);
-    $stmtProdutoVenda->execute();
-    $stmtVenda = $conn->prepare('DELETE FROM tb_vendas WHERE cd_venda = ?');
-    $stmtVenda->bind_param('i', $idVenda);
-    $stmtVenda->execute();
-    header('Location: venda.php');
+// Excluir compra
+if (isset($_POST['excluirCompra'])) {
+    $idCompra = (int) $_POST['id_compra'];
+    $stmtItens = $conn->prepare('SELECT id_produto, qt_produto FROM tb_produtos_compras WHERE id_compra = ?');
+    $stmtItens->bind_param('i', $idCompra);
+    $stmtItens->execute();
+    $itensCompra = $stmtItens->get_result();
+
+    $stmtEstoque = $conn->prepare('UPDATE tb_produtos SET qt_estoque = qt_estoque - ? WHERE cd_produto = ?');
+    while ($item = $itensCompra->fetch_assoc()) {
+        $stmtEstoque->bind_param('ii', $item['qt_produto'], $item['id_produto']);
+        $stmtEstoque->execute();
+    }
+
+    $stmtProdutoCompra = $conn->prepare('DELETE FROM tb_produtos_compras WHERE id_compra = ?');
+    $stmtProdutoCompra->bind_param('i', $idCompra);
+    $stmtProdutoCompra->execute();
+    $stmtCompra = $conn->prepare('DELETE FROM tb_compras WHERE cd_compra = ?');
+    $stmtCompra->bind_param('i', $idCompra);
+    $stmtCompra->execute();
+    header('Location: compras.php');
     exit;
 }
 
 $produtos = $conn->query('SELECT cd_produto, nm_produto, qt_estoque, vl_preco FROM tb_produtos ORDER BY nm_produto');
-$funcionarios = $conn->query('SELECT cd_funcionario, nm_funcionario FROM tb_funcionarios ORDER BY nm_funcionario');
-$vendas = $conn->query('SELECT v.cd_venda, v.dt_venda, v.vl_total, f.nm_funcionario FROM tb_vendas v LEFT JOIN tb_funcionarios f ON f.cd_funcionario = v.id_funcionario ORDER BY v.dt_venda DESC');
+$compras = $conn->query('SELECT cd_compra, dt_compra, vl_total_compra FROM tb_compras ORDER BY dt_compra DESC');
 $detalhes = [];
-$itens = $conn->query('SELECT pv.id_venda, p.nm_produto, pv.qt_produto, p.vl_preco FROM tb_produtos_vendas pv INNER JOIN tb_produtos p ON p.cd_produto = pv.id_produto ORDER BY pv.id_venda DESC, p.nm_produto');
+$itens = $conn->query('SELECT pc.id_compra, p.nm_produto, pc.qt_produto, p.vl_preco FROM tb_produtos_compras pc INNER JOIN tb_produtos p ON p.cd_produto = pc.id_produto ORDER BY pc.id_compra DESC, p.nm_produto');
 
 if ($itens) {
     while ($item = $itens->fetch_assoc()) {
-        $detalhes[$item['id_venda']][] = $item;
+        $detalhes[$item['id_compra']][] = $item;
     }
 }
 
@@ -69,30 +78,30 @@ if ($itens) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vendas</title>
+    <title>Compras</title>
 </head>
 
 <body>
     <?php
     include_once __DIR__ . '/inc/sidebar.php';
-    sidebar('vendas');
+    sidebar('compras');
     ?>
 
     <div class="container-fluid pt-3">
         <div class="row">
             <div class="col-md-12">
-                <h1 class="ms-3">Vendas</h1>
+                <h1 class="ms-3">Compras</h1>
             </div>
 
             <div class="col-md-3 mb-3">
-                <button class="btn btn-success w-100" type="button" data-bs-toggle="modal" data-bs-target="#modalCadastrarVenda">
-                    <i class="bi bi-plus-lg"></i> Cadastrar venda
+                <button class="btn btn-success w-100" type="button" data-bs-toggle="modal" data-bs-target="#modalCadastrarCompra">
+                    <i class="bi bi-plus-lg"></i> Cadastrar compra
                 </button>
             </div>
 
             <div class="col-md-9 mb-3">
                 <div class="input-group">
-                    <input id="pesquisaVenda" type="text" class="form-control" placeholder="Pesquisar venda...">
+                    <input id="pesquisaCompra" type="text" class="form-control" placeholder="Pesquisar compra...">
                     <button class="btn btn-outline-secondary" type="button" aria-label="Pesquisar">
                         <i class="bi bi-search"></i>
                     </button>
@@ -100,33 +109,30 @@ if ($itens) {
             </div>
 
             <div class="table-responsive">
-                <table class="table table-hover align-middle" id="tabelaVendas">
+                <table class="table table-hover align-middle" id="tabelaCompras">
                     <thead class="table-light">
                         <tr>
                             <th class="text-secondary">Código</th>
                             <th class="text-secondary">Data</th>
-                            <th class="text-secondary">Funcionário</th>
                             <th class="text-secondary">Valor Total</th>
                             <th class="text-secondary text-end">Opções</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if ($vendas->num_rows > 0): ?>
-                            <?php while ($venda = $vendas->fetch_assoc()): ?>
+                        <?php if ($compras->num_rows > 0): ?>
+                            <?php while ($compra = $compras->fetch_assoc()): ?>
                                 <?php
                                 $dados = [
-                                    'codigo' => $venda['cd_venda'],
-                                    'data' => date('d/m/Y H:i', strtotime($venda['dt_venda'])),
-                                    'funcionario' => $venda['nm_funcionario'],
-                                    'valor' => (float) $venda['vl_total'],
-                                    'itens' => $detalhes[$venda['cd_venda']]
+                                    'codigo' => $compra['cd_compra'],
+                                    'data' => date('d/m/Y H:i', strtotime($compra['dt_compra'])),
+                                    'valor' => (float) $compra['vl_total_compra'],
+                                    'itens' => $detalhes[$compra['cd_compra']]
                                 ];
                                 ?>
                                 <tr>
-                                    <td><span class="text-muted"><?= $venda['cd_venda'] ?></span></td>
-                                    <td><?= date('d/m/Y H:i', strtotime($venda['dt_venda'])) ?></td>
-                                    <td><strong><?= $venda['nm_funcionario'] ?></strong></td>
-                                    <td>R$ <?= number_format($venda['vl_total'], 2, ',', '.') ?></td>
+                                    <td><span class="text-muted"><?= $compra['cd_compra'] ?></span></td>
+                                    <td><?= date('d/m/Y H:i', strtotime($compra['dt_compra'])) ?></td>
+                                    <td>R$ <?= number_format($compra['vl_total_compra'], 2, ',', '.') ?></td>
                                     <td class="text-end">
                                         <div class="d-flex justify-content-end gap-2">
                                             <button type="button" class="btn btn-sm btn-primary" onclick='openModalDetalhes(<?= json_encode($dados) ?>)'>
@@ -135,16 +141,15 @@ if ($itens) {
                                             <button
                                                 class="btn btn-sm btn-danger"
                                                 onclick='openModalExcluir(<?= json_encode($dados) ?>)'>
-                                                <i class="bi bi-trash"></i>
-                                                Excluir
+                                                <i class="bi bi-trash"></i> Excluir
                                             </button>
                                         </div>
                                     </td>
                                 </tr>
                             <?php endwhile; ?>
                         <?php else: ?>
-                            <tr id="semVendas">
-                                <td colspan="5" class="text-center text-muted">Nenhuma venda encontrada.</td>
+                            <tr id="semCompras">
+                                <td colspan="4" class="text-center text-muted">Nenhuma compra encontrada.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -153,51 +158,37 @@ if ($itens) {
         </div>
     </div>
 
-    <div class="modal fade" id="modalCadastrarVenda" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="modalCadastrarCompra" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <form id="formCadastrarVenda" method="POST">
+                <form id="formCadastrarCompra" method="POST">
                     <div class="modal-header">
-                        <h1 class="modal-title fs-5">Cadastrar venda</h1>
+                        <h1 class="modal-title fs-5">Cadastrar compra</h1>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                     </div>
 
                     <div class="modal-body">
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="idFuncionario" class="form-label">Funcionário</label>
-                                <select class="form-select" id="idFuncionario" name="id_funcionario" required>
-                                    <option value="">Selecione o funcionário</option>
-                                    <?php if ($funcionarios): ?>
-                                        <?php while ($funcionario = $funcionarios->fetch_assoc()): ?>
-                                            <option value="<?= $funcionario['cd_funcionario'] ?>">
-                                                <?= $funcionario['nm_funcionario'] ?>
-                                            </option>
-                                        <?php endwhile; ?>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label for="dataVenda" class="form-label">Data da venda</label>
-                                <input class="form-control" type="datetime-local" id="dataVenda" name="dt_venda" required>
+                            <div class="col-md-12 mb-3">
+                                <label for="dataCompra" class="form-label">Data da compra</label>
+                                <input class="form-control" type="datetime-local" id="dataCompra" name="dt_compra" required>
                             </div>
                         </div>
 
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="mb-0">Produtos vendidos</h5>
+                            <h5 class="mb-0">Produtos comprados</h5>
                             <button type="button" class="btn btn-outline-primary btn-sm" id="adicionarProduto">
                                 <i class="bi bi-plus-lg"></i> Adicionar produto
                             </button>
                         </div>
 
                         <div id="listaProdutos"></div>
-                        <div class="text-end mt-3 fs-5">Total: <strong id="totalVenda">R$ 0,00</strong></div>
+                        <div class="text-end mt-3 fs-5">Total: <strong id="totalCompra">R$ 0,00</strong></div>
                     </div>
 
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                        <button type="submit" name="cadastrarVenda" class="btn btn-success">Cadastrar venda</button>
+                        <button type="submit" name="cadastrarCompra" class="btn btn-success">Cadastrar compra</button>
                     </div>
                 </form>
             </div>
@@ -208,7 +199,7 @@ if ($itens) {
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h1 class="modal-title fs-5">Detalhes da Venda</h1>
+                        <h1 class="modal-title fs-5">Detalhes da Compra</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
 
@@ -220,10 +211,7 @@ if ($itens) {
                         <div class="col-md-3"><small class="text-muted">Data</small>
                             <div><strong id="detalheData"></strong></div>
                         </div>
-                        <div class="col-md-3"><small class="text-muted">Funcionário</small>
-                            <div><strong id="detalheFuncionario"></strong></div>
-                        </div>
-                        <div class="col-md-3"><small class="text-muted">Valor Total</small>
+                        <div class="col-md-6"><small class="text-muted">Valor Total</small>
                             <div><strong class="text-success" id="detalheValor"></strong></div>
                         </div>
                     </div>
@@ -239,7 +227,7 @@ if ($itens) {
                                     <th class="text-end">Subtotal</th>
                                 </tr>
                             </thead>
-                            <tbody id="produtosVenda"></tbody>
+                            <tbody id="produtosCompra"></tbody>
                         </table>
                     </div>
                 </div>
@@ -253,7 +241,7 @@ if ($itens) {
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h1 class="modal-title text-danger fs-5">Excluir Venda</h1>
+                    <h1 class="modal-title text-danger fs-5">Excluir Compra</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
 
@@ -265,10 +253,7 @@ if ($itens) {
                         <div class="col-md-3"><small class="text-muted">Data</small>
                             <div><strong id="excluirData"></strong></div>
                         </div>
-                        <div class="col-md-3"><small class="text-muted">Funcionário</small>
-                            <div><strong id="excluirFuncionario"></strong></div>
-                        </div>
-                        <div class="col-md-3"><small class="text-muted">Valor Total</small>
+                        <div class="col-md-6"><small class="text-muted">Valor Total</small>
                             <div><strong class="text-success" id="excluirValor"></strong></div>
                         </div>
                     </div>
@@ -284,14 +269,14 @@ if ($itens) {
                                     <th class="text-end">Subtotal</th>
                                 </tr>
                             </thead>
-                            <tbody id="produtosVendaExcluir"></tbody>
+                            <tbody id="produtosCompraExcluir"></tbody>
                         </table>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <form method="POST">
-                        <input type="hidden" name="id_venda" id="idVendaExcluir">
-                        <button type="submit" name="excluirVenda" class="btn btn-danger">Excluir</button>
+                        <input type="hidden" name="id_compra" id="idCompraExcluir">
+                        <button type="submit" name="excluirCompra" class="btn btn-danger">Excluir</button>
                     </form>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                 </div>
@@ -302,7 +287,7 @@ if ($itens) {
     <script>
         const produtosDisponiveis = <?= json_encode($produtos ? $produtos->fetch_all(MYSQLI_ASSOC) : []) ?>;
         const listaProdutos = document.getElementById('listaProdutos');
-        const totalVenda = document.getElementById('totalVenda');
+        const totalCompra = document.getElementById('totalCompra');
 
         function moeda(valor) {
             return Number(valor).toLocaleString('pt-BR', {
@@ -324,7 +309,7 @@ if ($itens) {
                 }
             });
 
-            totalVenda.textContent = moeda(total);
+            totalCompra.textContent = moeda(total);
         }
 
         function adicionarLinhaProduto() {
@@ -363,20 +348,19 @@ if ($itens) {
         }
 
         document.getElementById('adicionarProduto').addEventListener('click', adicionarLinhaProduto);
-        document.getElementById('modalCadastrarVenda').addEventListener('show.bs.modal', () => {
-            document.getElementById('dataVenda').value = new Date(
+        document.getElementById('modalCadastrarCompra').addEventListener('show.bs.modal', () => {
+            document.getElementById('dataCompra').value = new Date(
                 Date.now() - new Date().getTimezoneOffset() * 60000
             ).toISOString().slice(0, 16);
         });
 
-        function openModalDetalhes(venda) {
-            document.getElementById('detalheCodigo').textContent = venda.codigo;
-            document.getElementById('detalheData').textContent = venda.data;
-            document.getElementById('detalheFuncionario').textContent = venda.funcionario;
-            document.getElementById('detalheValor').textContent = moeda(venda.valor);
+        function openModalDetalhes(compra) {
+            document.getElementById('detalheCodigo').textContent = compra.codigo;
+            document.getElementById('detalheData').textContent = compra.data;
+            document.getElementById('detalheValor').textContent = moeda(compra.valor);
 
-            const corpo = document.getElementById('produtosVenda');
-            corpo.innerHTML = venda.itens.map((item) => {
+            const corpo = document.getElementById('produtosCompra');
+            corpo.innerHTML = compra.itens.map((item) => {
                 const subtotal = Number(item.vl_preco) * Number(item.qt_produto);
 
                 return `
@@ -391,21 +375,20 @@ if ($itens) {
             corpo.insertAdjacentHTML('beforeend', `
             <tr>
                 <td colspan="3" class="text-end"><strong>Total</strong></td>
-                <td class="text-end"><strong class="text-success">${moeda(venda.valor)}</strong></td>
+                <td class="text-end"><strong class="text-success">${moeda(compra.valor)}</strong></td>
             </tr>
         `);
             new bootstrap.Modal(document.getElementById('modalDetalhes')).show();
         }
 
-        function openModalExcluir(venda) {
-            document.getElementById('idVendaExcluir').value = venda.codigo;
-            document.getElementById('excluirCodigo').textContent = venda.codigo;
-            document.getElementById('excluirData').textContent = venda.data;
-            document.getElementById('excluirFuncionario').textContent = venda.funcionario;
-            document.getElementById('excluirValor').textContent = moeda(venda.valor);
+        function openModalExcluir(compra) {
+            document.getElementById('idCompraExcluir').value = compra.codigo;
+            document.getElementById('excluirCodigo').textContent = compra.codigo;
+            document.getElementById('excluirData').textContent = compra.data;
+            document.getElementById('excluirValor').textContent = moeda(compra.valor);
 
-            const corpo = document.getElementById('produtosVendaExcluir');
-            corpo.innerHTML = venda.itens.map((item) => {
+            const corpo = document.getElementById('produtosCompraExcluir');
+            corpo.innerHTML = compra.itens.map((item) => {
                 const subtotal = Number(item.vl_preco) * Number(item.qt_produto);
 
                 return `
@@ -420,7 +403,7 @@ if ($itens) {
             corpo.insertAdjacentHTML('beforeend', `
             <tr>
                 <td colspan="3" class="text-end"><strong>Total</strong></td>
-                <td class="text-end"><strong class="text-success">${moeda(venda.valor)}</strong></td>
+                <td class="text-end"><strong class="text-success">${moeda(compra.valor)}</strong></td>
             </tr>
         `);
             new bootstrap.Modal(document.getElementById('modalExcluir')).show();
