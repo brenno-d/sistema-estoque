@@ -1,58 +1,96 @@
 <?php
-function sidebar($paginaAtiva = ''){
-    ?>
-    <div class="d-flex">
-           <button
-            class="btn btn-dark d-md-none position-fixed m-2"
-            type="button"
-            data-bs-toggle="offcanvas"
-            data-bs-target="#sidebar">
-            ☰
-        </button>
-        <div class="d-flex offcanvas-md offcanvas-start flex-column flex-shrink-0 p-3 bg-light min-vh-100" style="width: 280px;">
-            <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-dark text-decoration-none">
-                <svg class="bi me-2" width="40" height="32">
-                    <use xlink:href="#bootstrap"></use>
-                </svg>
-                <span class="fs-4">Controle de estoque</span>
+function sidebar($paginaAtiva = '')
+{
+?>
+    <style>
+        .stock-layout {
+            min-height: 100vh;
+        }
+
+        .stock-sidebar {
+            width: 280px;
+            height: 100vh;
+            overflow-y: auto;
+            background: #17212b;
+        }
+
+        .stock-sidebar hr {
+            border-color: #394754;
+        }
+
+        .stock-sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            color: #000000;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 1.05rem;
+        }
+
+        .stock-sidebar .nav-link:hover,
+        .stock-sidebar .nav-link.active {
+            color: #000000;
+            background: #16a085;
+        }
+
+        .stock-sidebar .nav-link i {
+            width: 2rem;
+            color: #000000;
+            font-size: 1.4rem;
+            text-align: center;
+        }
+
+        @media (max-width: 767.98px) {
+            .stock-layout {
+                display: block !important;
+            }
+
+            .stock-sidebar {
+                width: 280px;
+            }
+        }
+    </style>
+    <div class="d-flex align-items-start stock-layout">
+        <div id="sidebarMenu" class="d-flex offcanvas-md offcanvas-start flex-column flex-shrink-0 position-sticky top-0 p-3 stock-sidebar">
+            <a href="index.php" class="d-flex align-items-center mb-3 text-black text-decoration-none">
+                <span class="fs-5">Controle de estoque</span>
             </a>
-            <hr>
-            <ul class="nav nav-pills flex-column mb-auto">
+            <ul class="nav nav-pills flex-column mb-auto p-0">
                 <li class="nav-item">
-                    <a href="index.php" class="nav-link <?= $paginaAtiva === 'produtos' ? 'active' : 'link-dark' ?>" aria-current="page">
-                        <img src="./assets/images/Box-<?= $paginaAtiva === 'produtos' ? 'white' : 'black' ?>.png" alt="Vendas" width="32" height="32" class="me-2">
+                    <a href="index.php" class="nav-link <?= $paginaAtiva === 'produtos' ? 'active' : '' ?>" aria-current="page">
+                        <i class="bi bi-box-seam" aria-hidden="true"></i>
                         Produtos
                     </a>
                 </li>
                 <li>
-                    <a href="venda.php" class="nav-link <?= $paginaAtiva === 'vendas' ? 'active' : 'link-dark' ?>">
-                        <img src="./assets/images/cashier-<?= $paginaAtiva === 'vendas' ? 'white' : 'black' ?>.png" alt="Vendas" width="32" height="32" class="me-2">
+                    <a href="venda.php" class="nav-link <?= $paginaAtiva === 'vendas' ? 'active' : '' ?>">
+                        <i class="bi bi-cash-stack" aria-hidden="true"></i>
                         Vendas
                     </a>
                 </li>
                 <li>
-                    <a href="compras.php" class="nav-link <?= $paginaAtiva === 'compras' ? 'active' : 'link-dark' ?>">
-                        <img src="./assets/images/Truck-<?= $paginaAtiva === 'compras' ? 'white' : 'black' ?>.png" alt="Vendas" width="32" height="32" class="me-2">
+                    <a href="compras.php" class="nav-link <?= $paginaAtiva === 'compras' ? 'active' : '' ?>">
+                        <i class="bi bi-truck" aria-hidden="true"></i>
                         Compras
                     </a>
                 </li>
-                <li>
-                    <a href="#" class="nav-link <?= $paginaAtiva === 'relatorios' ? 'active' : 'link-dark' ?>">
-                        <img src="./assets/images/chart-<?= $paginaAtiva === 'relatorios' ? 'white' : 'black' ?>.png" alt="Vendas" width="32" height="32" class="me-2">
-                        Relatórios
+                <li class="w-100">
+                    <a href="relatorio.php" class="nav-link <?= $paginaAtiva === 'relatorios' ? 'active' : '' ?>">
+                        <i class="bi bi-bar-chart-line" aria-hidden="true"></i>
+                        Relatório
                     </a>
                 </li>
             </ul>
             <hr>
             <div class="dropdown">
-                <a href="#" class="d-flex align-items-center link-dark text-decoration-none dropdown-toggle" id="dropdownUser2" data-bs-toggle="dropdown" aria-expanded="false">
-                    <img src="https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_1280.png" alt="" width="32" height="32" class="rounded-circle me-2">
+                <a href="#" class="d-flex align-items-center text-black text-decoration-none dropdown-toggle" id="dropdownUser2" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle fs-4 me-2"></i>
                     <strong>Nome do funcionário</strong>
                 </a>
-                <ul class="dropdown-menu text-small shadow w-100" aria-labelledby="dropdownUser">
-                    </li>
+                <ul class="dropdown-menu text-small shadow w-100" aria-labelledby="dropdownUser2">
                     <li><a class="dropdown-item text-danger" href="/sistema-estoque/auth/logout.php">Sair</a></li>
                 </ul>
             </div>
         </div>
-<?php }
+    <?php }

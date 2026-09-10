@@ -76,12 +76,12 @@ if (isset($_POST['idProdutoExcluir'])) {
             <div class="col-md-12">
                 <h1 class="ms-3">Produtos</h1>
             </div>
-            <div class="col-md-2 mb-3">
+            <div class="col-md-3 mb-3">
                 <button class="btn btn-success w-100" onclick="openModalCadastrar()">
-                    Cadastrar Produto
+                    <i class="bi bi-plus-lg"></i> Cadastrar Produto
                 </button>
             </div>
-            <div class="col-md-10 mb-3">
+            <div class="col-md-9 mb-3">
                 <form method="GET">
                 <div class="input-group">
                     <input type="text" class="form-control" name="pesquisa" placeholder="Pesquisar...">
