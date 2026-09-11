@@ -1,4 +1,5 @@
 <?php
+include_once __DIR__ . '/inc/verificarSession.php';
 include_once __DIR__ . '/inc/DBConn.php';
 
 $periodos = [
@@ -38,7 +39,7 @@ $stmtProdutos = $conn->prepare(
      FROM tb_produtos_vendas pv
      INNER JOIN tb_produtos p ON p.cd_produto = pv.id_produto
      INNER JOIN tb_vendas v ON v.cd_venda = pv.id_venda
-     WHERE v.dt_venda >= ? AND v.dt_venda <= ?
+    WHERE v.dt_venda >= ? AND v.dt_venda <= ?
      GROUP BY p.cd_produto, p.nm_produto
      ORDER BY quantidade DESC, p.nm_produto
      LIMIT 5'
@@ -48,7 +49,8 @@ $stmtProdutos->execute();
 $produtosMaisVendidos = $stmtProdutos->get_result()->fetch_all(MYSQLI_ASSOC);
 
 $stmtProdutosMenos = $conn->prepare(
-    'SELECT p.nm_produto, COALESCE(SUM(pv.qt_produto), 0) AS quantidade
+    'SELECT p.nm_produto,
+            COALESCE(SUM(CASE WHEN v.cd_venda IS NOT NULL THEN pv.qt_produto ELSE 0 END), 0) AS quantidade
      FROM tb_produtos p
      LEFT JOIN tb_produtos_vendas pv ON pv.id_produto = p.cd_produto
      LEFT JOIN tb_vendas v ON v.cd_venda = pv.id_venda

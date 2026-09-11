@@ -18,7 +18,8 @@ FOREIGN KEY (id_categoria) REFERENCES tb_categorias(cd_categoria)
 );
 CREATE TABLE tb_funcionarios(
 cd_funcionario INT PRIMARY KEY AUTO_INCREMENT,
-nm_funcionario VARCHAR(100),
+nm_funcionario VARCHAR(100) NOT NULL,
+ds_senha VARCHAR(100) NOT NULL,
 ds_email_funcionario VARCHAR(100),
 ds_tel_funcionario VARCHAR(15),
 ds_nivel_funcionario ENUM('admin', 'usuario') NOT NULL

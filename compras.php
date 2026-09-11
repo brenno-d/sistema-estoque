@@ -1,5 +1,7 @@
 <?php
+include_once __DIR__ . '/inc/verificarSession.php';
 include_once __DIR__ . '/inc/DBConn.php';
+
 // Cadastrar compra
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cadastrarCompra'])) {
     $dataSql = date('Y-m-d H:i:s', strtotime($_POST['dt_compra']));
@@ -79,6 +81,12 @@ if ($itens) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compras</title>
+    <style>
+        body {
+            background: #f4f7fb;
+            color: var(--preto);
+        }
+    </style>
 </head>
 
 <body>
@@ -97,15 +105,6 @@ if ($itens) {
                 <button class="btn btn-success w-100" type="button" data-bs-toggle="modal" data-bs-target="#modalCadastrarCompra">
                     <i class="bi bi-plus-lg"></i> Cadastrar compra
                 </button>
-            </div>
-
-            <div class="col-md-9 mb-3">
-                <div class="input-group">
-                    <input id="pesquisaCompra" type="text" class="form-control" placeholder="Pesquisar compra...">
-                    <button class="btn btn-outline-secondary" type="button" aria-label="Pesquisar">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
             </div>
 
             <div class="table-responsive">

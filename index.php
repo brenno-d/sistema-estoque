@@ -1,30 +1,23 @@
 <?php
+include_once __DIR__ . '/inc/verificarSession.php';
 include_once __DIR__ . '/inc/DBConn.php';
-if (isset($_GET['pesquisa'])) {
-    $pesquisa = $_GET['pesquisa'];
-    $sql = "SELECT * FROM tb_produtos WHERE nm_produto LIKE ?";
-    $stmt = $conn->prepare($sql);
-    $searchTerm = "%$pesquisa%";
-    $stmt->bind_param("s", $searchTerm);
-    $stmt->execute();
-    $result = $stmt->get_result();
-} else {
-    $sql = "SELECT * FROM tb_produtos";
-    $result = $conn->query($sql);
-}
+$mensagem = '';
+$tipoMensagem = '';
+
 if (isset($_POST['nomeCadastrar']) && isset($_POST['estoqueCadastrar']) && isset($_POST['precoCadastrar'])) {
     $nome = $_POST['nomeCadastrar'];
     $estoque = $_POST['estoqueCadastrar'];
     $preco = $_POST['precoCadastrar'];
 
-    $sqlInsert = "INSERT INTO tb_produtos (nm_produto, qt_estoque, vl_preco) VALUES (?, ?, ?)";
+    $sqlInsert = "INSERT INTO tb_produtos (nm_produto, qt_estoque, vl_preco, st_ativo) VALUES (?, ?, ?, 1)";
     $stmt = $conn->prepare($sqlInsert);
     $stmt->bind_param("sid", $nome, $estoque, $preco);
     if ($stmt->execute()) {
-        echo "<script>alert('Produto cadastrado com sucesso!');</script>";
-        echo "<script>window.location.href = 'index.php';</script>";
+        $mensagem = 'Produto cadastrado com sucesso!';
+        $tipoMensagem = 'success';
     } else {
-        echo "<script>alert('Erro ao cadastrar produto: " . $stmt->error . "');</script>";
+        $mensagem = 'Erro ao cadastrar produto: ' . $stmt->error;
+        $tipoMensagem = 'danger';
     }
 }
 if (isset($_POST['nomeEditar']) && isset($_POST['estoqueEditar']) && isset($_POST['precoEditar'])) {
@@ -37,24 +30,39 @@ if (isset($_POST['nomeEditar']) && isset($_POST['estoqueEditar']) && isset($_POS
     $stmt = $conn->prepare($sqlUpdate);
     $stmt->bind_param("sidi", $nome, $estoque, $preco, $codigo);
     if ($stmt->execute()) {
-        echo "<script>alert('Produto atualizado com sucesso!');</script>";
-        echo "<script>window.location.href = 'index.php';</script>";
+        $mensagem = 'Produto atualizado com sucesso!';
+        $tipoMensagem = 'success';
     } else {
-        echo "<script>alert('Erro ao atualizar produto: " . $stmt->error . "');</script>";
+        $mensagem = 'Erro ao atualizar produto: ' . $stmt->error;
+        $tipoMensagem = 'danger';
     }
 }
 if (isset($_POST['idProdutoExcluir'])) {
-    $codigo = $_POST['idProdutoExcluir'];
+    $codigo = (int) $_POST['idProdutoExcluir'];
 
-    $sqlDelete = "DELETE FROM tb_produtos WHERE cd_produto = ?";
+    $sqlDelete = "UPDATE tb_produtos SET st_ativo = 0 WHERE cd_produto = ?";
     $stmt = $conn->prepare($sqlDelete);
     $stmt->bind_param("i", $codigo);
     if ($stmt->execute()) {
-        echo "<script>alert('Produto excluído com sucesso!');</script>";
-        echo "<script>window.location.href = 'index.php';</script>";
+        $mensagem = 'Produto desativado com sucesso!';
+        $tipoMensagem = 'success';
     } else {
-        echo "<script>alert('Erro ao excluir produto: " . $stmt->error . "');</script>";
+        $mensagem = 'Erro ao excluir produto: ' . $stmt->error;
+        $tipoMensagem = 'danger';
     }
+}
+
+if (isset($_GET['pesquisa'])) {
+    $pesquisa = $_GET['pesquisa'];
+    $sql = "SELECT * FROM tb_produtos WHERE nm_produto LIKE ? AND st_ativo = 1";
+    $stmt = $conn->prepare($sql);
+    $searchTerm = "%$pesquisa%";
+    $stmt->bind_param("s", $searchTerm);
+    $stmt->execute();
+    $result = $stmt->get_result();
+} else {
+    $sql = "SELECT * FROM tb_produtos WHERE st_ativo = 1";
+    $result = $conn->query($sql);
 }
 ?>
 <!DOCTYPE html>
@@ -64,6 +72,12 @@ if (isset($_POST['idProdutoExcluir'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home</title>
+    <style>
+        body {
+            background: #f4f7fb;
+            color: var(--preto);
+        }
+    </style>
 </head>
 
 <body>
@@ -72,6 +86,12 @@ if (isset($_POST['idProdutoExcluir'])) {
     sidebar('produtos');
     ?>
     <div class="container-fluid pt-3">
+        <?php if ($mensagem !== ''): ?>
+            <div class="alert alert-<?= $tipoMensagem ?> alert-dismissible fade show mx-3" role="alert">
+                <?= $mensagem ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+            </div>
+        <?php endif; ?>
         <div class="row">
             <div class="col-md-12">
                 <h1 class="ms-3">Produtos</h1>
@@ -84,7 +104,8 @@ if (isset($_POST['idProdutoExcluir'])) {
             <div class="col-md-9 mb-3">
                 <form method="GET">
                 <div class="input-group">
-                    <input type="text" class="form-control" name="pesquisa" placeholder="Pesquisar...">
+                    <label class="visually-hidden" for="pesquisa">Pesquisar produtos</label>
+                    <input type="text" id="pesquisa" class="form-control" name="pesquisa" placeholder="Pesquisar..." value="<?=  isset($_GET['pesquisa']) ? $_GET['pesquisa'] : '' ?>">
                     <button class="btn btn-outline-secondary" type="submit">
                         <i class="bi bi-search"></i>
                     </button>

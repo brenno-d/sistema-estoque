@@ -86,10 +86,13 @@ function sidebar($paginaAtiva = '')
             <div class="dropdown">
                 <a href="#" class="d-flex align-items-center text-black text-decoration-none dropdown-toggle" id="dropdownUser2" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-person-circle fs-4 me-2"></i>
-                    <strong>Nome do funcionário</strong>
+                    <strong><?=$_SESSION['nome']?></strong>
                 </a>
                 <ul class="dropdown-menu text-small shadow w-100" aria-labelledby="dropdownUser2">
-                    <li><a class="dropdown-item text-danger" href="/sistema-estoque/auth/logout.php">Sair</a></li>
+                    <li><a class="dropdown-item text-danger" href="auth/logout.php">Sair</a></li>
+                    <?php if (($_SESSION['nivel'] ?? '') === 'admin') { ?>
+                    <li><a class="dropdown-item text-black" href="admin.php">Painel Admin</a></li>
+                    <?php } ?>
                 </ul>
             </div>
         </div>
